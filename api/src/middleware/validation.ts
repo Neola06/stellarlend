@@ -201,3 +201,162 @@ export const relayDelegatedValidation = [
     .withMessage('callsXdr is required and must be <= 20000 characters'),
   validateRequest,
 ];
+
+// Leverage validation middleware
+const validateStellarAddress = (value: string, fieldName: string) => {
+  if (!StrKey.isValidEd25519PublicKey(value)) {
+    throw new Error(`Invalid Stellar ${fieldName}`);
+  }
+  return true;
+};
+
+const validatePositiveIntegerString = (value: string, fieldName: string) => {
+  const errMsg = `${fieldName} must be a valid positive integer`;
+  try {
+    const str = String(value).trim();
+    if (!/^\+?\d+$/.test(str)) {
+      throw new Error(errMsg);
+    }
+    const amount = BigInt(str);
+    if (amount <= 0n) {
+      throw new Error(errMsg);
+    }
+    const maxI128 = (1n << 127n) - 1n;
+    if (amount > maxI128) {
+      throw new Error(errMsg);
+    }
+    return true;
+  } catch {
+    throw new Error(errMsg);
+  }
+};
+
+export const leveragePrepareValidation = [
+  body('userAddress')
+    .notEmpty()
+    .withMessage('userAddress is required')
+    .custom((value) => validateStellarAddress(value, 'userAddress')),
+  body('collateralAsset')
+    .notEmpty()
+    .withMessage('collateralAsset is required')
+    .custom((value) => validateStellarAddress(value, 'collateralAsset')),
+  body('borrowAsset')
+    .notEmpty()
+    .withMessage('borrowAsset is required')
+    .custom((value) => validateStellarAddress(value, 'borrowAsset')),
+  body('collateralAmount')
+    .notEmpty()
+    .withMessage('collateralAmount is required')
+    .custom((value) => validatePositiveIntegerString(value, 'collateralAmount')),
+  body('targetLeverage')
+    .notEmpty()
+    .withMessage('targetLeverage is required')
+    .isFloat({ min: 1, max: 10 })
+    .withMessage('targetLeverage must be a number between 1 and 10'),
+  body('minHealthFactor')
+    .optional()
+    .isFloat({ min: 1.0, max: 5.0 })
+    .withMessage('minHealthFactor must be a number between 1.0 and 5.0'),
+  body('slippageTolerance')
+    .optional()
+    .isFloat({ min: 0, max: 0.5 })
+    .withMessage('slippageTolerance must be a number between 0 and 0.5'),
+  body('loopCount')
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage('loopCount must be an integer between 1 and 5'),
+  validateRequest,
+];
+
+export const leverageSimulateValidation = [
+  body('userAddress')
+    .notEmpty()
+    .withMessage('userAddress is required')
+    .custom((value) => validateStellarAddress(value, 'userAddress')),
+  body('collateralAsset')
+    .notEmpty()
+    .withMessage('collateralAsset is required')
+    .custom((value) => validateStellarAddress(value, 'collateralAsset')),
+  body('borrowAsset')
+    .notEmpty()
+    .withMessage('borrowAsset is required')
+    .custom((value) => validateStellarAddress(value, 'borrowAsset')),
+  body('collateralAmount')
+    .notEmpty()
+    .withMessage('collateralAmount is required')
+    .custom((value) => validatePositiveIntegerString(value, 'collateralAmount')),
+  body('targetLeverage')
+    .notEmpty()
+    .withMessage('targetLeverage is required')
+    .isFloat({ min: 1, max: 10 })
+    .withMessage('targetLeverage must be a number between 1 and 10'),
+  body('minHealthFactor')
+    .optional()
+    .isFloat({ min: 1.0, max: 5.0 })
+    .withMessage('minHealthFactor must be a number between 1.0 and 5.0'),
+  body('slippageTolerance')
+    .optional()
+    .isFloat({ min: 0, max: 0.5 })
+    .withMessage('slippageTolerance must be a number between 0 and 0.5'),
+  body('loopCount')
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage('loopCount must be an integer between 1 and 5'),
+  validateRequest,
+];
+
+export const leverageExecuteValidation = [
+  body('signedXdr')
+    .isString()
+    .notEmpty()
+    .isLength({ max: MAX_XDR_LENGTH })
+    .withMessage('signedXdr is required and must be <= 20000 characters'),
+  body('userAddress')
+    .notEmpty()
+    .withMessage('userAddress is required')
+    .custom((value) => validateStellarAddress(value, 'userAddress')),
+  body('minHealthFactor')
+    .notEmpty()
+    .withMessage('minHealthFactor is required')
+    .isFloat({ min: 1.0, max: 5.0 })
+    .withMessage('minHealthFactor must be a number between 1.0 and 5.0'),
+  body('operation')
+    .optional()
+    .isIn(['leverage_loop'])
+    .withMessage('operation must be leverage_loop'),
+  validateRequest,
+];
+
+export const leverageHealthFactorValidation = [
+  query('userAddress')
+    .notEmpty()
+    .withMessage('userAddress is required')
+    .custom((value) => validateStellarAddress(value, 'userAddress')),
+  query('collateralAsset')
+    .optional()
+    .custom((value) => {
+      if (value && !StrKey.isValidEd25519PublicKey(value)) {
+        throw new Error('Invalid Stellar collateralAsset');
+      }
+      return true;
+    }),
+  query('borrowAsset')
+    .optional()
+    .custom((value) => {
+      if (value && !StrKey.isValidEd25519PublicKey(value)) {
+        throw new Error('Invalid Stellar borrowAsset');
+      }
+      return true;
+    }),
+  query('simulateLeverage')
+    .optional()
+    .isFloat({ min: 1, max: 10 })
+    .withMessage('simulateLeverage must be a number between 1 and 10'),
+  query('simulateAmount')
+    .optional()
+    .custom((value) => {
+      if (!value) return true;
+      return validatePositiveIntegerString(value, 'simulateAmount');
+    }),
+  validateRequest,
+];
