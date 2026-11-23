@@ -78,6 +78,15 @@ pub mod strategy;
 /// ERC-4626-style vault interface for stablecoin pools (issue #1608)
 pub mod vault;
 
+/// Retroactive emissions claim with Merkle proof root rotation (issue #1538)
+pub mod emissions;
+
+/// Loan NFT representation with transferability policy (issue #1540)
+pub mod loan_nft;
+
+/// Bad debt socialisation workflow with on-chain votes (issue #1544)
+pub mod bad_debt;
+
 #[no_mangle]
 pub fn transfer_admin(
     env: Env,
